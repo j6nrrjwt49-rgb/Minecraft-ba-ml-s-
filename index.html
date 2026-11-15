@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Blok Bağımlısı: 15 Günlük Destan</title>
+<style>
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #090d16;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #f8fafc;
+  }
+  #gameCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ÜST HUD (BÖLÜMLER BUTONU KALDIRILDI!) */
+  #topBar {
+    position: fixed;
+    top: 10px;
+    left: 12px;
+    right: 12px;
+    z-index: 50;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    gap: 8px;
+  }
+  .hud-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    pointer-events: auto;
+  }
+  .hud-pill {
+    background: rgba(15, 23, 42, 0.9);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 6px 11px;
+    font-weight: 800;
+    font-size: 12px;
+    color: #f8fafc;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+  }
+  .top-right-btns {
+    display: flex;
+    gap: 8px;
+    pointer-events: auto;
+  }
+  .btn-ui {
+    background: #1e293b;
+    border: 2px solid #64748b;
+    color: #fff;
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #0f172a;
+  }
+  .btn-ui:active { transform: translateY(3px); box-shadow: 0 1px 0 #0f172a; }
+  .btn-skip {
+    background: #f59e0b;
+    border-color: #fef3c7;
+    color: #0f172a;
+    font-size: 14px;
+    padding: 10px 18px;
+  }
+
+  /* BAŞLANGIÇ EKRANI */
+  #startOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: radial-gradient(circle at center, #1e1b4b 0%, #090d16 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+  .badge-tag {
+    background: rgba(16, 185, 129, 0.2);
+    border: 2px solid #10b981;
+    color: #6ee7b7;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+  .main-title {
+    font-size: clamp(26px, 5vw, 48px);
+    font-weight: 900;
+    color: #34d399;
+    text-shadow: 0 4px 0 #064e3b;
+    margin: 0 0 8px 0;
+  }
+  .sub-title {
+    font-size: clamp(15px, 2.5vw, 22px);
+    color: #fbbf24;
+    font-weight: 800;
+    margin: 0 0 18px 0;
+  }
+  .story-desc {
+    max-width: 580px;
+    background: rgba(15, 23, 42, 0.88);
+    border: 2px solid #334155;
+    border-radius: 20px;
+    padding: 15px 18px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #cbd5e1;
+    margin-bottom: 24px;
+  }
+  .btn-start-big {
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+    border: 3px solid #a7f3d0;
+    color: #022c22;
+    font-size: 20px;
+    font-weight: 900;
+    padding: 16px 32px;
+    border-radius: 20px;
+    box-shadow: 0 6px 0 #064e3b;
+    cursor: pointer;
+  }
+  .btn-start-big:active { transform: translateY(4px); box-shadow: 0 2px 0 #064e3b; }
+
+  /* FRAGMAN ALTYAZISI */
+  #trailerCaption {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 45;
+    width: 92%;
+    max-width: 680px;
+    background: rgba(9, 13, 22, 0.92);
+    border: 3px solid #10b981;
+    border-radius: 20px;
+    padding: 15px 20px;
+    text-align: center;
+  }
+  .trailer-day {
+    display: inline-block;
+    background: #ef4444;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    padding: 4px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  #trailerText {
+    margin: 0;
+    font-size: clamp(15px, 2.3vw, 20px);
+    font-weight: 800;
+    color: #f8fafc;
+  }
+
+  /* ODA EYLEM PANELİ (AKŞAM & GECE) */
+  #roomHud {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 35;
+    width: 95%;
+    max-width: 780px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 3px solid #334155;
+    border-radius: 22px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .room-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: #fde047;
+    padding: 0 4px;
+  }
+  .room-btn-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .btn-room {
+    border-radius: 16px;
+    padding: 12px 8px;
+    font-weight: 900;
+    font-size: 13px;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+  }
+  .btn-room:active { transform: scale(0.96); }
+  .btn-mc { background: linear-gradient(180deg, #10b981, #047857); border: 2px solid #a7f3d0; color: #022c22; }
+  .btn-vid { background: linear-gradient(180deg, #8b5cf6, #6d28d9); border: 2px solid #ddd6fe; }
+  .btn-sleep { background: linear-gradient(180deg, #3b82f6, #1d4ed8); border: 2px solid #bfdbfe; }
+
+  /* PC MİNİ OYUNU (BLOK KAZMA + CREEPER SAVAŞI + GELİŞTİRME) */
+  #pcMiniHud {
+    position: fixed;
+    inset: 0;
+    z-index: 38;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 62px 16px 18px 16px;
+  }
+  .pc-top-info {
+    background: rgba(15, 23, 42, 0.9);
+    border: 2px solid #10b981;
+    border-radius: 16px;
+    padding: 10px 16px;
+    max-width: 520px;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .pc-bottom-btns {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    pointer-events: auto;
+  }
+  .btn-pc-act {
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+    border: 2px solid #fff;
+  }
+
+  /* YORGAN ALTI GİZLİ VİDEO İZLEME MODALI */
+  #blanketModal {
+    position: fixed;
+    inset: 0;
+    z-index: 44;
+    background: rgba(2, 6, 23, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .tablet-frame {
+    background: #0f172a;
+    border: 6px solid #475569;
+    border-radius: 28px;
+    padding: 18px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.35);
+  }
+  .video-screen {
+    background: #1e1b4b;
+    border: 2px solid #8b5cf6;
+    border-radius: 16px;
+    padding: 18px;
+    margin: 12px 0;
+  }
+  .footstep-alert {
+    background: #dc2626;
+    color: #fff;
+    font-weight: 900;
+    padding: 8px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    animation: pulse 0.5s infinite alternate;
+  }
+  @keyframes pulse { from { opacity: 0.7; } to { opacity: 1; } }
+
+  /* OKUL SINIFI HUD (UYUMA & HOCA KAFAYA VURMA) */
+  #schoolHud {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    width: 92%;
+    max-width: 560px;
+    background: rgba(15, 23, 42, 0.94);
+    border: 3px solid #f59e0b;
+    border-radius: 22px;
+    padding: 16px;
+    text-align: center;
+  }
+  .bar-bg {
+    width: 100%;
+    height: 16px;
+    background: #1e293b;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 8px 0 12px 0;
+  }
+  .bar-fill {
+    height: 100%;
+    transition: width 0.15s;
+  }
+  .btn-stay-awake {
+    width: 100%;
+    background: linear-gradient(180deg, #38bdf8, #0284c7);
+    border: 3px solid #bae6fd;
+    color: #082f49;
+    font-size: 18px;
+    font-weight: 900;
+    padding: 15px;
+    border-radius: 16px;
+    cursor: pointer;
+  }
+  .btn-stay-awake:active { transform: scale(0.96); }
+
+  /* ANNE & GENEL DİYALOG MODALI */
+  #momModal {
+    position: fixed;
+    inset: 0;
+    z-index: 48;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+  }
+  .modal-card {
+    background: #0f172a;
+    border: 4px solid #ef4444;
+    border-radius: 24px;
+    padding: 22px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+  }
+  .choice-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .btn-choice {
+    padding: 14px 10px;
+    border-radius: 14px;
+    font-weight: 900;
+    font-size: 13px;
+    color: #fff;
+    cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.4);
+  }
+
+  /* DİYALOG KUTUSU */
+  #dialogueBox {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 49;
+    width: 94%;
+    max-width: 700px;
+    background: rgba(15, 23, 42, 0.96);
+    border: 4px solid #fbbf24;
+    border-radius: 22px;
+    padding: 16px 20px;
+  }
+  .dlg-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .dlg-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: #1e293b;
+    border: 2px solid #fbbf24;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+  }
+  .dlg-badge {
+    background: #f59e0b;
+    color: #0f172a;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+  .dlg-name { font-size: 17px; font-weight: 900; color: #fff; margin-top: 3px; }
+  .dlg-text { font-size: 16px; line-height: 1.45; color: #f1f5f9; margin: 0 0 12px 0; }
+  .btn-next {
+    background: #fbbf24;
+    border: 2px solid #fef3c7;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 10px 22px;
+    border-radius: 12px;
+    cursor: pointer;
+    float: right;
+  }
+
+  /* PARK DOKUNMATİK KONTROLLERİ (15. GÜN SONRASI) */
+  #parkHud {
+    position: fixed;
+    inset: 0;
+    z-index: 36;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 62px 16px 18px 16px;
+  }
+  .quest-panel {
+    background: rgba(15, 23, 42, 0.9);
+    border: 2px solid #38bdf8;
+    border-radius: 16px;
+    padding: 10px 14px;
+    max-width: 420px;
+    pointer-events: auto;
+  }
+  .controls-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .dpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 54px);
+    grid-template-rows: repeat(3, 54px);
+    gap: 6px;
+    pointer-events: auto;
+  }
+  .dpad-btn {
+    background: rgba(30, 41, 59, 0.92);
+    border: 2px solid #94a3b8;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .btn-interact {
+    width: 98px;
+    height: 98px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #fbbf24, #ea580c);
+    border: 4px solid #fef3c7;
+    color: #0f172a;
+    font-weight: 900;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  /* MİNİ OYUN MODALI */
+  #miniGameModal {
+    position: fixed;
+    inset: 0;
+    z-index: 47;
+    background: rgba(9, 13, 22, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+  }
+  .mg-box {
+    background: #0f172a;
+    border: 4px solid #38bdf8;
+    border-radius: 24px;
+    padding: 22px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+  }
+  .mg-option-btn {
+    width: 100%;
+    background: #1e293b;
+    border: 2px solid #64748b;
+    color: #fff;
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 800;
+    margin-top: 10px;
+    cursor: pointer;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- ÜST DURUM ÇUBUĞU (BÖLÜMLER MENÜSÜ YOK!) -->
+  <div id="topBar">
+    <div id="hudStats" class="hud-stats hidden">
+      <div class="hud-pill" style="border-color:#38bdf8; color:#7dd3fc;">📅 GÜN: <span id="dayText">1</span> / 15</div>
+      <div class="hud-pill" style="border-color:#fbbf24; color:#fde047;">⏰ <span id="timeText">20:00 AKŞAM</span></div>
+      <div class="hud-pill" style="border-color:#a78bfa; color:#ddd6fe;">⚡ UYKU: %<span id="energyText">80</span></div>
+      <div class="hud-pill" style="border-color:#f87171; color:#fca5a5;">🎮 BAĞIMLILIK: %<span id="addictText">15</span></div>
+      <div class="hud-pill" style="border-color:#34d399; color:#6ee7b7;">💎 <span id="diamondText">0</span></div>
+    </div>
+    <div class="top-right-btns">
+      <button id="muteBtn" class="btn-ui">🔊 Ses</button>
+      <button id="skipBtn" class="btn-ui btn-skip hidden">GEÇ (SKIP) ⏭️</button>
+    </div>
+  </div>
+
+  <!-- 0. GİRİŞ EKRANI -->
+  <div id="startOverlay">
+    <div class="badge-tag">15 GÜNLÜK UZUN HİKAYELİ MACERA</div>
+    <h1 class="main-title">BLOK BAĞIMLISI:<br>15 GÜNLÜK DESTAN</h1>
+    <h2 class="sub-title">"Anne Yemeği Beklet, Yorgan Altında Video İzleyeceğim!"</h2>
+    <div class="story-desc">
+      Tam <b>15 Gün</b> boyunca Çocuk'un hayatını yönet! Akşamları MC oyna ve Creeper avla, gece yatağa girip <b>yorgan altında gizlice video izle</b>, sabah uykusuz kalıp <b>okulda derste uyuyakal ve Hoca'dan kafana şaplağı ye!</b> 15. günde Aile Kurumu baskın yapıp Çocuk'u <b>kucaklarında taşıyarak</b> parka çıkaracak!
+    </div>
+    <button id="startGameBtn" class="btn-start-big">🎬 FRAGMANI BAŞLAT & OYNA</button>
+  </div>
+
+  <!-- FRAGMAN ALTYAZISI -->
+  <div id="trailerCaption" class="hidden">
+    <div id="trailerDayBadge" class="trailer-day">FRAGMAN - 1. GÜN</div>
+    <p id="trailerText">Her şey masum bir "Sadece 10 dakika blok kırıp uyuyacağım" sözüyle başladı...</p>
+  </div>
+
+  <!-- ODA EYLEM MENÜSÜ -->
+  <div id="roomHud" class="hidden">
+    <div class="room-status-bar">
+      <span id="roomPromptText">🏠 Odandasın! Ne yapmak istersin?</span>
+      <span id="roomSubInfo">15. Günde Aile Kurumu Gelecek!</span>
+    </div>
+    <div class="room-btn-grid">
+      <button id="btnPlayPC" class="btn-room btn-mc">
+        <span style="font-size:22px;">🖥️⛏️</span>
+        <span>PC'DE MC OYNA<br><small style="font-weight:600;">(Blok Kaz & Creeper Avla)</small></span>
+      </button>
+      <button id="btnSecretVideo" class="btn-room btn-vid">
+        <span style="font-size:22px;">🛏️📱</span>
+        <span>YORGAN ALTI VİDEO<br><small style="font-weight:600;">(Gece Gizlice İzle)</small></span>
+      </button>
+      <button id="btnGoSleep" class="btn-room btn-sleep">
+        <span style="font-size:22px;">😴🌙</span>
+        <span>UYU & OKULA GİT<br><small style="font-weight:600;">(Sabah Ders Başlar)</small></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PC MİNİ OYUN HUD -->
+  <div id="pcMiniHud" class="hidden">
+    <div class="pc-top-info">
+      <div id="pcTargetInfo" style="color:#34d399; font-size:15px; margin-bottom:4px;">⛏️ Bloklara veya Creeper'a dokun!</div>
+      <div>Kazma: <b id="pickName" style="color:#38bdf8;">Tahta Kazma</b> (<b id="pickPwr">1x</b>) | Zaman İlerliyor...</div>
+    </div>
+    <div class="pc-bottom-btns">
+      <button id="btnMineHit" class="btn-pc-act" style="background:#10b981; color:#022c22;">⛏️ VUR / KAZ!</button>
+      <button id="btnUpgradePick" class="btn-pc-act" style="background:#0284c7; color:#fff;">⬆️ KAZMA GELİŞTİR (<span id="pickCost">5</span> 💎)</button>
+      <button id="btnExitPC" class="btn-pc-act" style="background:#ef4444; color:#fff;">🚪 PC'DEN KALK</button>
+    </div>
+  </div>
+
+  <!-- YORGAN ALTI GİZLİ VİDEO İZLEME MODALI -->
+  <div id="blanketModal" class="hidden">
+    <div class="tablet-frame">
+      <div style="font-size:13px; font-weight:900; color:#a78bfa;">🛏️ YORGANIN ALTI - SAAT 02:45</div>
+      <div id="footstepWarning" class="footstep-alert hidden">👣 DİKKAT! ANNE KORİDORDA YÜRÜYOR! EKRANI KAPAT!</div>
+      <div class="video-screen">
+        <div id="vidEmoji" style="font-size:48px;">🎬🧱🐉</div>
+        <div id="vidTitle" style="font-weight:900; font-size:16px; color:#fff; margin-top:6px;">"100 GÜN HARDCORE BLOK HAYATTA KALMA!"</div>
+        <div style="font-size:12px; color:#cbd5e1; margin-top:4px;">İzleme Süresi: <b id="vidProgress">0</b> / 100 | Uyku Enerjisi Düşüyor!</div>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button id="btnWatchMore" class="btn-pc-act" style="background:#8b5cf6; color:#fff; flex:1;">▶️ İZLEMEYE DEVAM ET</button>
+        <button id="btnHideTablet" class="btn-pc-act" style="background:#10b981; color:#022c22; flex:1;">🙈 TABLETİ SAKLA & UYU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OKUL SINIFI HUD -->
+  <div id="schoolHud" class="hidden">
+    <div style="font-size:15px; font-weight:900; color:#fde047;">🏫 OKUL DERSİ - GÖZLERİN KAPANIYOR!</div>
+    <div style="font-size:12px; color:#cbd5e1;">Gece uykusuz kaldıysan göz kapakların ağırlaşır! Hoca yakalarsa kafana vurur!</div>
+    <div class="bar-bg">
+      <div id="sleepinessBar" class="bar-fill" style="width:20%; background:linear-gradient(90deg, #38bdf8, #ef4444);"></div>
+    </div>
+    <button id="btnStayAwake" class="btn-stay-awake">👀 GÖZLERİNİ AÇIK TUT! (HIZLI DOKUN)</button>
+  </div>
+
+  <!-- ANNE ÇAĞRISI MODALI -->
+  <div id="momModal" class="hidden">
+    <div class="modal-card">
+      <div style="font-size:50px;">👩‍🦱🍲</div>
+      <div style="background:#ef4444; color:#fff; display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:900; margin:6px 0;">ANNE KAPIDA!</div>
+      <p id="momQuote" style="font-size:18px; font-weight:800; margin:8px 0;">"Çocuk! Yemek soğudu, kapat artık şu bilgisayarı!"</p>
+      <div class="choice-grid">
+        <button id="btnIgnoreMom" class="btn-choice" style="background:#dc2626;">🙉 ANNE 5 DK DAHA!<br><small>(+3 Elmas, +8% Bağımlılık)</small></button>
+        <button id="btnEatFast" class="btn-choice" style="background:#16a34a;">🍲 HEMEN YİYİP DÖN<br><small>(+15% Enerji, +2% Bağımlılık)</small></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DİYALOG KUTUSU -->
+  <div id="dialogueBox" class="hidden">
+    <div class="dlg-header">
+      <div id="dlgAvatar" class="dlg-avatar">🕵️‍♂️</div>
+      <div>
+        <span id="dlgBadge" class="dlg-badge">AİLE KURUMU</span>
+        <div id="dlgName" class="dlg-name">Müfettiş</div>
+      </div>
+    </div>
+    <p id="dlgText" class="dlg-text">Konuşma metni...</p>
+    <button id="dlgNextBtn" class="btn-next">DEVAM ET ➡️</button>
+  </div>
+
+  <!-- PARK & DIŞARI GÖREVLERİ HUD (15. GÜN SONRASI) -->
+  <div id="parkHud" class="hidden">
+    <div class="quest-panel">
+      <div style="font-size:13px; font-weight:900; color:#38bdf8; margin-bottom:6px;" id="parkTitle">🌱 15. GÜN SONRASI: GERÇEK HAYAT GÖREVLERİ</div>
+      <ul id="questList" style="list-style:none; padding:0; margin:0; font-size:13px; font-weight:700; display:flex; flex-direction:column; gap:4px;"></ul>
+    </div>
+    <div class="controls-bottom">
+      <div class="dpad-grid">
+        <div></div><button id="padUp" class="dpad-btn">⬆️</button><div></div>
+        <button id="padLeft" class="dpad-btn">⬅️</button><div style="display:flex;align-items:center;justify-content:center;font-size:10px;color:#94a3b8;font-weight:800;">YÜRÜ</div><button id="padRight" class="dpad-btn">➡️</button>
+        <div></div><button id="padDown" class="dpad-btn">⬇️</button><div></div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+        <div id="parkHint" style="background:rgba(0,0,0,0.82); color:#fde047; font-size:12px; font-weight:800; padding:6px 12px; border-radius:999px;">Hedefe yaklaş!</div>
+        <button id="interactBtn" class="btn-interact"><span style="font-size:26px;">✋</span><span>ETKİLEŞİM</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MİNİ OYUN & FİNAL MODALI -->
+  <div id="miniGameModal" class="hidden">
+    <div class="mg-box">
+      <div id="mgEmoji" style="font-size:50px;">⚽</div>
+      <h3 id="mgTitle" style="margin:6px 0; color:#38bdf8;">MİNİ OYUN</h3>
+      <p id="mgDesc" style="font-size:14px; color:#cbd5e1;"></p>
+      <div id="mgControls"></div>
+    </div>
+  </div>
+
+<script>
+// ==========================================
+// 1. SES SENTEZLEYİCİ (WEBAUDIO - SIFIR HARİCİ DOSYA)
+// ==========================================
+const AudioSys = {
+  ctx: null,
+  muted: false,
+  init() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) this.ctx = new AC();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  beep(freq, type, dur, vol = 0.14, slide = null) {
+    if (this.muted || !this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      if (slide) osc.frequency.exponentialRampToValueAtTime(slide, this.ctx.currentTime + dur);
+      gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.005, this.ctx.currentTime + dur);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + dur);
+    } catch (e) {}
+  },
+  mine() { this.beep(175, 'square', 0.08, 0.14, 80); },
+  diamond() { this.beep(620, 'sine', 0.1, 0.18); setTimeout(() => this.beep(920, 'sine', 0.2, 0.18), 75); },
+  slap() { this.beep(140, 'sawtooth', 0.16, 0.28, 45); }, // Hoca kafaya vurma efekti!
+  mom() { this.beep(400, 'sawtooth', 0.14, 0.16); setTimeout(() => this.beep(300, 'sawtooth', 0.2, 0.16), 130); },
+  siren() { this.beep(580, 'square', 0.25, 0.16, 860); setTimeout(() => this.beep(860, 'square', 0.25, 0.16, 580), 250); },
+  win() { this.beep(523, 'triangle', 0.12, 0.2); setTimeout(() => this.beep(659, 'triangle', 0.12, 0.2), 110); setTimeout(() => this.beep(784, 'triangle', 0.25, 0.22), 220); }
+};
+
+// ==========================================
+// 2. CANVAS VE TEMEL DEĞİŞKENLER
+// ==========================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = window.innerWidth, H = window.innerHeight;
+function resize() { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; }
+window.addEventListener('resize', resize);
+resize();
+
+// Oyun Durumları:
+// 'START', 'TRAILER', 'ROOM_HUB', 'PC_GAME', 'BLANKET_VID', 'SCHOOL', 'DAY15_RAID', 'DAY15_CARRY', 'PARK_OUTDOOR', 'FINAL_END'
+let state = 'START';
+let tick = 0;
+let screenShake = 0;
+let particles = [];
+let floatTexts = [];
+let dialogueQueue = [];
+let onDialogueDone = null;
+
+// 15 GÜNLÜK YAŞAM DÖNGÜSÜ DEĞİŞKENLERİ
+let currentDay = 1;
+const MAX_DAYS = 15;
+let timeOfDay = 'EVENING'; // 'MORNING_SCHOOL', 'EVENING', 'NIGHT'
+let sleepEnergy = 85;
+let addiction = 15;
+let diamonds = 0;
+
+// ==========================================
+// 3. FRAGMAN VERİLERİ
+// ==========================================
+let trailerStep = 0, trailerTimer = 0;
+const trailerScript = [
+  { dur: 200, day: "FRAGMAN - 1. GÜN", mode: "day", text: "Her şey Çocuk'un 'Sadece 10 dakika blok kırıp uyuyacağım' demesiyle başladı..." },
+  { dur: 200, day: "FRAGMAN - GECE YARISI", mode: "night", text: "Geceleri yorganın altında gizlice oyun videoları izledi, sabah okulda sıralarda uyuyakaldı!" },
+  { dur: 200, day: "FRAGMAN - 15. GÜNE DOĞRU", mode: "alarm", text: "Tam 15 gün boyunca odadan çıkmayı reddedince kapıda Aile Kurumu belirdi!" }
+];
+
+// ==========================================
+// 4. PC MİNİ OYUNU (BLOK KAZMA + CREEPER + GELİŞTİRME)
+// ==========================================
+const pickaxes = [
+  { name: "Tahta Kazma", power: 1, cost: 5 },
+  { name: "Taş Kazma", power: 2, cost: 14 },
+  { name: "Demir Kazma", power: 4, cost: 28 },
+  { name: "Elmas Kazma", power: 8, cost: 55 },
+  { name: "Netherite Kazma", power: 16, cost: 999 }
+];
+let pickIdx = 0;
+let targetType = 'dirt'; // 'dirt', 'stone', 'gold', 'diamond', 'creeper'
+let targetHp = 4, targetMaxHp = 4;
+let pcPlayTicks = 0;
+
+// Yorgan Altı Video Değişkenleri
+let vidWatchPercent = 0;
+let momComing = false;
+let momStepTimer = 0;
+
+// Okul Sınıfı Değişkenleri
+let classTimer = 0;
+let sleepiness = 25;
+let gotSlappedThisClass = false;
+let bumpSize = 0; // Kafadaki şişlik animasyonu
+
+// 15. Gün Baskın & Kucakta Taşınma Değişkenleri
+let carryX = 0.08;
+let carryStage = 0; // 0: Oda/Koridor, 1: Mahalle Sokağı, 2: Park Girişi
+
+// Dışarı Park Görevleri (15. Gün Sonrası)
+let player = { x: 0.16, y: 0.65, dir: 'right', walk: 0, tx: null, ty: null };
+let dpad = { up: false, down: false, left: false, right: false };
+let outdoorStage = 0; // 0: Çim/Kedi/Çeşme, 1: Penaltı, 2: Dondurmacı, 3: Final
+let parkTasks = { grass: false, cat: false, fountain: false };
+
+// ==========================================
+// 5. UI YÖNETİMİ
+// ==========================================
+function hideAll() {
+  ['startOverlay', 'trailerCaption', 'roomHud', 'pcMiniHud', 'blanketModal', 'schoolHud', 'momModal', 'dialogueBox', 'parkHud', 'miniGameModal']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
+}
+
+function updateTopHUD() {
+  document.getElementById('hudStats').classList.remove('hidden');
+  document.getElementById('dayText').textContent = currentDay;
+  let tLabel = '20:30 AKŞAM';
+  if (timeOfDay === 'MORNING_SCHOOL') tLabel = '09:00 OKUL';
+  else if (timeOfDay === 'NIGHT') tLabel = '02:30 GECE';
+  document.getElementById('timeText').textContent = tLabel;
+  document.getElementById('energyText').textContent = Math.max(0, Math.min(100, Math.round(sleepEnergy)));
+  document.getElementById('addictText').textContent = Math.max(0, Math.min(100, Math.round(addiction)));
+  document.getElementById('diamondText').textContent = diamonds;
+}
+
+function addFloat(x, y, text, color = '#fde047') {
+  floatTexts.push({ x, y, text, color, life: 60 });
+}
+
+function addBurst(x, y, color, n = 10) {
+  for (let i = 0; i < n; i++) {
+    particles.push({ x, y, vx: (Math.random() - 0.5) * 11, vy: (Math.random() - 0.85) * 11, size: Math.random() * 7 + 4, color, life: 28 });
+  }
+}
+
+function startDialogue(lines, cb) {
+  dialogueQueue = [...lines];
+  onDialogueDone = cb;
+  nextDialogue();
+}
+
+function nextDialogue() {
+  if (dialogueQueue.length === 0) {
+    document.getElementById('dialogueBox').classList.add('hidden');
+    if (onDialogueDone) { const fn = onDialogueDone; onDialogueDone = null; fn(); }
+    return;
+  }
+  const d = dialogueQueue.shift();
+  document.getElementById('dlgAvatar').textContent = d.avatar;
+  document.getElementById('dlgBadge').textContent = d.badge;
+  document.getElementById('dlgName').textContent = d.name;
+  document.getElementById('dlgText').textContent = d.text;
+  document.getElementById('dialogueBox').classList.remove('hidden');
+}
+
+document.getElementById('dlgNextBtn').addEventListener('click', () => { AudioSys.mine(); nextDialogue(); });
+document.getElementById('muteBtn').addEventListener('click', () => {
+  AudioSys.muted = !AudioSys.muted;
+  document.getElementById('muteBtn').textContent = AudioSys.muted ? '🔇 Sessiz' : '🔊 Ses';
+});
+
+// ==========================================
+// 6. FRAGMAN -> 15 GÜNLÜK DÖNGÜ BAŞLANGICI
+// ==========================================
+document.getElementById('startGameBtn').addEventListener('click', () => {
+  AudioSys.init();
+  AudioSys.win();
+  beginTrailer();
+});
+
+function beginTrailer() {
+  hideAll();
+  state = 'TRAILER';
+  trailerStep = 0;
+  trailerTimer = 0;
+  document.getElementById('trailerCaption').classList.remove('hidden');
+  document.getElementById('skipBtn').classList.remove('hidden');
+  document.getElementById('trailerDayBadge').textContent = trailerScript[0].day;
+  document.getElementById('trailerText').textContent = trailerScript[0].text;
+}
+
+document.getElementById('skipBtn').addEventListener('click', () => {
+  AudioSys.mine();
+  document.getElementById('skipBtn').classList.add('hidden');
+  start15DayStory();
+});
+
+function start15DayStory() {
+  hideAll();
+  document.getElementById('skipBtn').classList.add('hidden');
+  currentDay = 1;
+  timeOfDay = 'EVENING';
+  sleepEnergy = 85;
+  addiction = 15;
+  diamonds = 0;
+  pickIdx = 0;
+  enterRoomHub();
+}
+
+// ==========================================
+// 7. ODA MERKEZİ (AKŞAM & GECE SEÇİMLERİ)
+// ==========================================
+function enterRoomHub() {
+  // 15. GÜN KONTROLÜ!
+  if (currentDay >= MAX_DAYS) {
+    triggerDay15AileKurumuRaid();
+    return;
+  }
+
+  hideAll();
+  state = 'ROOM_HUB';
+  updateTopHUD();
+  document.getElementById('roomHud').classList.remove('hidden');
+
+  const rem = MAX_DAYS - currentDay;
+  document.getElementById('roomSubInfo').textContent = `Aile Kurumu Baskınına ${rem} Gün Kaldı!`;
+  if (timeOfDay === 'EVENING') {
+    document.getElementById('roomPromptText').textContent = `🌆 ${currentDay}. Gün Akşamı: Önce PC'de takıl ya da yatağa geç!`;
+  } else {
+    document.getElementById('roomPromptText').textContent = `🌙 ${currentDay}. Gün Gece Yarısı: Gizlice video mu izleyeceksin, uyuyacak mısın?`;
+  }
+}
+
+// --- EYLEM 1: PC'DE MC OYNA ---
+document.getElementById('btnPlayPC').addEventListener('click', () => {
+  AudioSys.mine();
+  hideAll();
+  state = 'PC_GAME';
+  pcPlayTicks = 0;
+  spawnPCTarget();
+  updatePCUI();
+  document.getElementById('pcMiniHud').classList.remove('hidden');
+});
+
+function spawnPCTarget() {
+  const r = Math.random();
+  if (r < 0.25) { targetType = 'creeper'; targetMaxHp = 8; }
+  else if (r < 0.48) { targetType = 'diamond'; targetMaxHp = 10; }
+  else if (r < 0.72) { targetType = 'gold'; targetMaxHp = 6; }
+  else { targetType = 'dirt'; targetMaxHp = 4; }
+  targetHp = targetMaxHp;
+}
+
+function hitPCTarget(px, py) {
+  if (state !== 'PC_GAME') return;
+  AudioSys.mine();
+  screenShake = 6;
+  const pwr = pickaxes[pickIdx].power;
+  targetHp -= pwr;
+  const col = targetType === 'creeper' ? '#22c55e' : (targetType === 'diamond' ? '#22d3ee' : '#facc15');
+  addBurst(px || W * 0.5, py || H * 0.42, col, 8);
+
+  if (targetHp <= 0) {
+    const gain = targetType === 'creeper' ? 5 : (targetType === 'diamond' ? 4 : 2);
+    diamonds += gain;
+    addiction = Math.min(100, addiction + 2);
+    sleepEnergy = Math.max(0, sleepEnergy - 3);
+    AudioSys.diamond();
+    const label = targetType === 'creeper' ? `CREEPER YENİLDİ! +${gain} 💎` : `+${gain} ELMAS! 💎`;
+    addFloat(px || W * 0.5, (py || H * 0.42) - 25, label, '#22d3ee');
+    spawnPCTarget();
+  }
+  updatePCUI();
+  updateTopHUD();
+}
+
+function updatePCUI() {
+  const pk = pickaxes[pickIdx];
+  document.getElementById('pickName').textContent = pk.name;
+  document.getElementById('pickPwr').textContent = pk.power + 'x';
+  document.getElementById('pickCost').textContent = pk.cost;
+  const names = { dirt: 'Toprak Bloğu', gold: 'Altın Cevheri', diamond: 'Elmas Cevheri', creeper: '⚠️ VAHŞİ CREEPER!' };
+  document.getElementById('pcTargetInfo').textContent = `Hedef: ${names[targetType]} (Can: ${Math.max(0, targetHp)}/${targetMaxHp})`;
+}
+
+document.getElementById('btnMineHit').addEventListener('click', () => hitPCTarget(W * 0.5, H * 0.42));
+document.getElementById('btnUpgradePick').addEventListener('click', () => {
+  const pk = pickaxes[pickIdx];
+  if (pickIdx < pickaxes.length - 1 && diamonds >= pk.cost) {
+    diamonds -= pk.cost;
+    pickIdx++;
+    AudioSys.win();
+    addFloat(W * 0.5, H * 0.35, `YENİ KAZMA: ${pickaxes[pickIdx].name}!`, '#38bdf8');
+    updatePCUI();
+    updateTopHUD();
+  } else {
+    AudioSys.mom();
+    addFloat(W * 0.5, H * 0.35, "Yetersiz Elmas!", '#f87171');
+  }
+});
+
+document.getElementById('btnExitPC').addEventListener('click', () => {
+  AudioSys.mine();
+  timeOfDay = 'NIGHT';
+  enterRoomHub();
+});
+
+// --- EYLEM 2: YORGAN ALTI GİZLİ VİDEO İZLE ---
+document.getElementById('btnSecretVideo').addEventListener('click', () => {
+  AudioSys.mine();
+  hideAll();
+  state = 'BLANKET_VID';
+  timeOfDay = 'NIGHT';
+  updateTopHUD();
+  vidWatchPercent = 0;
+  momComing = false;
+  momStepTimer = 0;
+  document.getElementById('vidProgress').textContent = '0';
+  document.getElementById('footstepWarning').classList.add('hidden');
+  document.getElementById('blanketModal').classList.remove('hidden');
+});
+
+document.getElementById('btnWatchMore').addEventListener('click', () => {
+  if (state !== 'BLANKET_VID') return;
+  if (momComing) {
+    // Anne yakaladı!
+    AudioSys.mom();
+    document.getElementById('blanketModal').classList.add('hidden');
+    addiction = Math.min(100, addiction + 8);
+    sleepEnergy = Math.max(0, sleepEnergy - 15);
+    startDialogue([
+      { avatar: "👩‍🦱", badge: "ANNE BASKINI", name: "Annen", text: "YAKALADIM SENİ! Saat gecenin 3'ü olmuş, yorganın altında hâlâ oyun videosu izliyorsun! Sabah okulda nasıl uyanacaksın?!" },
+      { avatar: "🧒", badge: "ÇOCUK", name: "Çocuk", text: "Anne tam ejderhayı kesiyordu videoda, şimdi kapatıp uyuyorum vallahi!" }
+    ], () => {
+      goToMorningSchool();
+    });
+    return;
+  }
+
+  AudioSys.diamond();
+  vidWatchPercent += 20;
+  sleepEnergy = Math.max(0, sleepEnergy - 10);
+  addiction = Math.min(100, addiction + 4);
+  document.getElementById('vidProgress').textContent = vidWatchPercent;
+  updateTopHUD();
+
+  if (Math.random() < 0.45 && vidWatchPercent < 100) {
+    momComing = true;
+    momStepTimer = 110;
+    AudioSys.mom();
+    document.getElementById('footstepWarning').classList.remove('hidden');
+  }
+
+  if (vidWatchPercent >= 100) {
+    document.getElementById('blanketModal').classList.add('hidden');
+    addFloat(W * 0.5, H * 0.4, "VİDEO BİTTİ AMA UYKUSUZ KALDIN! 😵", "#a78bfa");
+    goToMorningSchool();
+  }
+});
+
+document.getElementById('btnHideTablet').addEventListener('click', () => {
+  AudioSys.win();
+  document.getElementById('blanketModal').classList.add('hidden');
+  if (momComing) {
+    addFloat(W * 0.5, H * 0.4, "SON ANDA SAKLANDIN! ANNE FARK ETMEDİ! 🤫", "#4ade80");
+  }
+  sleepEnergy = Math.min(100, sleepEnergy + 18);
+  goToMorningSchool();
+});
+
+// --- EYLEM 3: DÜZGÜNCE UYU ---
+document.getElementById('btnGoSleep').addEventListener('click', () => {
+  AudioSys.win();
+  sleepEnergy = Math.min(100, sleepEnergy + 35);
+  goToMorningSchool();
+});
+
+// ==========================================
+// 8. SABAH OKUL DERSİ & HOCA KAFAYA VURMA SAHNESİ!
+// ==========================================
+function goToMorningSchool() {
+  hideAll();
+  state = 'SCHOOL';
+  timeOfDay = 'MORNING_SCHOOL';
+  updateTopHUD();
+  classTimer = 0;
+  gotSlappedThisClass = false;
+  bumpSize = 0;
+
+  // Gece uykusuz kaldıysa uyku bastırması çok hızlı artar!
+  sleepiness = sleepEnergy < 45 ? 55 : 15;
+  document.getElementById('sleepinessBar').style.width = sleepiness + '%';
+  document.getElementById('schoolHud').classList.remove('hidden');
+}
+
+document.getElementById('btnStayAwake').addEventListener('click', () => {
+  if (state !== 'SCHOOL' || gotSlappedThisClass) return;
+  AudioSys.mine();
+  sleepiness = Math.max(0, sleepiness - 12);
+  document.getElementById('sleepinessBar').style.width = sleepiness + '%';
+});
+
+function triggerTeacherSlap() {
+  gotSlappedThisClass = true;
+  document.getElementById('schoolHud').classList.add('hidden');
+  AudioSys.slap();
+  screenShake = 22;
+  bumpSize = 18;
+  addBurst(W * 0.5, H * 0.52, '#ef4444', 18);
+  addFloat(W * 0.5, H * 0.38, "💥 ŞLAAAK!! UYAN EVLADIM!! 💥", "#ef4444");
+
+  setTimeout(() => {
+    startDialogue([
+      { avatar: "👨‍🏫", badge: "ÖĞRETMEN", name: "Matematik Hocası", text: "ŞLAAAK!! BURASI YATAKHANE Mİ ÇOCUK?! Bütün gece bilgisayar başında blok kırıp video izlersen derste böyle horlarsın işte!" },
+      { avatar: "🧒", badge: "ÇOCUK (KAFASI ŞİŞTİ)", name: "Çocuk", text: "AHHH KAFAM! Hocam rüyamda elmas madeni bulmuştum tam kazıyordum..." },
+      { avatar: "👨‍🏫", badge: "ÖĞRETMEN", name: "Matematik Hocası", text: "Anneni arayıp durumu bildireceğim! Bu gidişle Aile Kurumu kapına dayanacak!" }
+    ], () => {
+      finishSchoolDay();
+    });
+  }, 600);
+}
+
+function finishSchoolDay() {
+  currentDay++;
+  timeOfDay = 'EVENING';
+  // Her 3 günde bir akşam anne yemek baskını yapar
+  if (currentDay < MAX_DAYS && currentDay % 3 === 0) {
+    hideAll();
+    AudioSys.mom();
+    document.getElementById('momQuote').textContent = `"Çocuk! ${currentDay}. gün oldu odadan çıkmıyorsun! Mantı soğudu, gel artık!"`;
+    document.getElementById('momModal').classList.remove('hidden');
+  } else {
+    enterRoomHub();
+  }
+}
+
+document.getElementById('btnIgnoreMom').addEventListener('click', () => {
+  diamonds += 3;
+  addiction = Math.min(100, addiction + 8);
+  AudioSys.mine();
+  enterRoomHub();
+});
+
+document.getElementById('btnEatFast').addEventListener('click', () => {
+  sleepEnergy = Math.min(100, sleepEnergy + 15);
+  addiction = Math.max(0, addiction - 2);
+  AudioSys.win();
+  enterRoomHub();
+});
+
+// ==========================================
+// 9. 15. GÜN BÜYÜK BASKIN & KUCAKTA TAŞINMA!
+// ==========================================
+function triggerDay15AileKurumuRaid() {
+  hideAll();
+  state = 'DAY15_RAID';
+  AudioSys.siren();
+  updateTopHUD();
+
+  startDialogue([
+    { avatar: "👩‍🦱", badge: "15. GÜN - ANNE", name: "Annen", text: "TAM 15 GÜN OLDU! Okulda uyuyorsun, yemek yemiyorsun, odadan çıkmıyorsun! Aile Kurumu'nu çağırdım!" },
+    { avatar: "🕵️‍♂️", badge: "AİLE KURUMU EKİBİ", name: "Müfettiş & Görevli", text: "15 günlük bağımlılık sınırı aşıldı Çocuk! Bilgisayarın fişini çektik, seni kucağımızda taşıyarak doğruca parka götürüyoruz!" },
+    { avatar: "🧒", badge: "ÇOCUK", name: "Çocuk", text: "HAYIIIIR! İNDİRİN BENİİİ! TAM NETHERITE KAZMA YAPACAKTIM!" }
+  ], () => {
+    state = 'DAY15_CARRY';
+    carryX = 0.05;
+    carryStage = 0;
+  });
+}
+
+// ==========================================
+// 10. 15. GÜN SONRASI PARK & DIŞARI MACERALARI
+// ==========================================
+function startParkOutdoor() {
+  hideAll();
+  state = 'PARK_OUTDOOR';
+  outdoorStage = 0;
+  player = { x: 0.16, y: 0.65, dir: 'right', walk: 0, tx: null, ty: null };
+  updateParkUI();
+
+  startDialogue([
+    { avatar: "🕵️‍♂️", badge: "AİLE KURUMU", name: "Müfettiş", text: "İşte mahalle parkına indirdik! Şimdi gerçek dünyanın görevlerini tamamla: Çimlere dokun, kediyi sev ve çeşmeden su iç!" }
+  ], () => {
+    document.getElementById('parkHud').classList.remove('hidden');
+  });
+}
+
+function updateParkUI() {
+  const list = document.getElementById('questList');
+  if (outdoorStage === 0) {
+    list.innerHTML = `
+      <li>${parkTasks.grass ? '✅' : '⬜'} 1. Parlayan Çimlere Dokun (Sol Alt)</li>
+      <li>${parkTasks.cat ? '✅' : '⬜'} 2. Mahalle Kedisini Sev (Orta)</li>
+      <li>${parkTasks.fountain ? '✅' : '⬜'} 3. Çeşmeden Su İç (Sağ Alt)</li>
+    `;
+  } else if (outdoorStage === 1) {
+    list.innerHTML = `<li>⬜ Sağdaki kaleye yürü ve arkadaşınla Penaltı At!</li>`;
+  } else if (outdoorStage === 2) {
+    list.innerHTML = `<li>⬜ Sağ üstteki Maraş Dondurmacısı arabasına yürü!</li>`;
+  }
+}
+
+document.getElementById('interactBtn').addEventListener('click', () => {
+  if (state !== 'PARK_OUTDOOR') return;
+  if (outdoorStage === 0) {
+    if (!parkTasks.grass && Math.hypot(player.x - 0.25, player.y - 0.74) < 0.15) {
+      parkTasks.grass = true; AudioSys.win();
+      addFloat(player.x * W, player.y * H - 40, "ÇİMLERE DOKUNULDU! 🌱", "#4ade80");
+      updateParkUI();
+    } else if (!parkTasks.cat && Math.hypot(player.x - 0.52, player.y - 0.58) < 0.15) {
+      parkTasks.cat = true; AudioSys.diamond();
+      addFloat(player.x * W, player.y * H - 40, "MİİİAV! KEDİ SEVİLDİ 🐈❤️", "#f472b6");
+      updateParkUI();
+    } else if (!parkTasks.fountain && Math.hypot(player.x - 0.78, player.y - 0.74) < 0.15) {
+      parkTasks.fountain = true; AudioSys.win();
+      addFloat(player.x * W, player.y * H - 40, "SOĞUK SU İÇİLDİ! ⛲💧", "#38bdf8");
+      updateParkUI();
+    }
+    if (parkTasks.grass && parkTasks.cat && parkTasks.fountain) {
+      outdoorStage = 1;
+      updateParkUI();
+      addFloat(W * 0.5, H * 0.3, "ŞİMDİ HALISAHA PENALTI MAÇINA! ⚽", "#fde047");
+    }
+  } else if (outdoorStage === 1 && Math.hypot(player.x - 0.82, player.y - 0.62) < 0.18) {
+    openPenaltyGame();
+  } else if (outdoorStage === 2 && Math.hypot(player.x - 0.76, player.y - 0.52) < 0.18) {
+    openIceCreamGame();
+  }
+});
+
+let goals = 0;
+function openPenaltyGame() {
+  document.getElementById('parkHud').classList.add('hidden');
+  goals = 0;
+  renderPenalty();
+  document.getElementById('miniGameModal').classList.remove('hidden');
+}
+function renderPenalty() {
+  document.getElementById('mgEmoji').textContent = "⚽🥅";
+  document.getElementById('mgTitle').textContent = `MAHALLE PENALTI MAÇI (${goals}/3 Gol)`;
+  document.getElementById('mgDesc').textContent = "Hangi köşeye şut çekeceksin?";
+  document.getElementById('mgControls').innerHTML = `
+    <button class="mg-option-btn" onclick="shootBall('SOL')">⬅️ SOL KÖŞEYE VUR</button>
+    <button class="mg-option-btn" onclick="shootBall('ORTA')">⬆️ ORTADAN SERT ŞUT</button>
+    <button class="mg-option-btn" onclick="shootBall('SAĞ')">➡️ SAĞ DOKSANA PLASE</button>
+  `;
+}
+window.shootBall = function(dir) {
+  const keeper = ['SOL', 'ORTA', 'SAĞ'][Math.floor(Math.random() * 3)];
+  if (dir !== keeper) { goals++; AudioSys.win(); } else { AudioSys.mom(); }
+  if (goals >= 3) {
+    document.getElementById('miniGameModal').classList.add('hidden');
+    outdoorStage = 2;
+    updateParkUI();
+    document.getElementById('parkHud').classList.remove('hidden');
+    addFloat(W * 0.5, H * 0.3, "HARİKA GOLLER! ŞİMDİ DONDURMACIYA! 🍦", "#4ade80");
+  } else {
+    renderPenalty();
+  }
+};
+
+let coneStep = 0;
+function openIceCreamGame() {
+  document.getElementById('parkHud').classList.add('hidden');
+  coneStep = 0;
+  renderIceCream();
+  document.getElementById('miniGameModal').classList.remove('hidden');
+}
+function renderIceCream() {
+  document.getElementById('mgEmoji').textContent = "🍦🎩";
+  document.getElementById('mgTitle').textContent = `MARAŞ DONDURMACISI ŞAKASI (${coneStep}/3)`;
+  document.getElementById('mgDesc').textContent = "Dondurmacı usta külahı çevirip şaka yapıyor! Hızlıca yakala!";
+  document.getElementById('mgControls').innerHTML = `
+    <button class="mg-option-btn" style="background:#f59e0b; color:#0f172a;" onclick="grabCone()">⚡ KÜLAHI KAP!</button>
+  `;
+}
+window.grabCone = function() {
+  coneStep++;
+  AudioSys.diamond();
+  if (coneStep >= 3) {
+    showFinalEnding();
+  } else {
+    renderIceCream();
+  }
+};
+
+function showFinalEnding() {
+  AudioSys.win();
+  state = 'FINAL_END';
+  document.getElementById('mgEmoji').textContent = "🏆🌱🎮";
+  document.getElementById('mgTitle').textContent = "15 GÜNLÜK DESTAN TAMAMLANDI!";
+  document.getElementById('mgDesc').innerHTML = `
+    Tebrikler! Çocuk artık gerçek hayatın tadını çıkardı, arkadaşlarıyla top oynadı ve dondurmasını yedi.<br><br>
+    <b>Toplanan Elmas:</b> ${diamonds} 💎 | <b>Son Bağımlılık:</b> %20 (Dengeli Oyuncu!) 🌟<br><br>
+    Artık okulda derslerde uyumuyor, annesinin yemeklerini kaçırmıyor ve günde sadece 1 saat keyifle oyun oynuyor!
+  `;
+  document.getElementById('mgControls').innerHTML = `
+    <button class="mg-option-btn" style="background:#10b981; color:#022c22;" onclick="beginTrailer()">🔄 HİKAYEYİ BAŞTAN OYNA</button>
+  `;
+}
+
+// ==========================================
+// 11. DOKUNMATİK KONTROLLER & UPDATE
+// ==========================================
+function bindPad(id, k) {
+  const el = document.getElementById(id);
+  const on = (e) => { e.preventDefault(); dpad[k] = true; player.tx = null; };
+  const off = (e) => { e.preventDefault(); dpad[k] = false; };
+  el.addEventListener('touchstart', on, { passive: false });
+  el.addEventListener('touchend', off, { passive: false });
+  el.addEventListener('mousedown', on);
+  el.addEventListener('mouseup', off);
+}
+bindPad('padUp', 'up'); bindPad('padDown', 'down'); bindPad('padLeft', 'left'); bindPad('padRight', 'right');
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (state === 'PC_GAME') hitPCTarget(e.clientX, e.clientY);
+  else if (state === 'PARK_OUTDOOR' && e.clientY / H < 0.78) {
+    player.tx = e.clientX / W;
+    player.ty = Math.max(0.46, Math.min(0.86, e.clientY / H));
+  }
+});
+
+function update() {
+  tick++;
+  if (screenShake > 0) screenShake--;
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+  for (let i = floatTexts.length - 1; i >= 0; i--) {
+    const f = floatTexts[i]; f.y -= 1.2; f.life--;
+    if (f.life <= 0) floatTexts.splice(i, 1);
+  }
+
+  if (state === 'TRAILER') {
+    trailerTimer++;
+    if (trailerTimer >= trailerScript[trailerStep].dur) {
+      trailerTimer = 0; trailerStep++;
+      if (trailerStep >= trailerScript.length) start15DayStory();
+      else {
+        document.getElementById('trailerDayBadge').textContent = trailerScript[trailerStep].day;
+        document.getElementById('trailerText').textContent = trailerScript[trailerStep].text;
+      }
+    }
+  }
+
+  if (state === 'BLANKET_VID' && momComing) {
+    momStepTimer--;
+    if (momStepTimer <= 0) {
+      // Anne kapıyı açtı ve yakaladı!
+      document.getElementById('btnWatchMore').click();
+    }
+  }
+
+  if (state === 'SCHOOL' && !gotSlappedThisClass) {
+    classTimer++;
+    const rate = sleepEnergy < 45 ? 0.42 : 0.22;
+    sleepiness = Math.min(100, sleepiness + rate);
+    document.getElementById('sleepinessBar').style.width = sleepiness + '%';
+
+    if (sleepiness >= 100) {
+      triggerTeacherSlap();
+    } else if (classTimer > 360) {
+      // Dersi uyumadan atlattı!
+      document.getElementById('schoolHud').classList.add('hidden');
+      AudioSys.win();
+      addFloat(W * 0.5, H * 0.35, "DERSİ UYUMADAN BİTİRDİN! 👏", "#4ade80");
+      finishSchoolDay();
+    }
+  }
+
+  if (state === 'DAY15_CARRY') {
+    carryX += 0.0045;
+    if (carryX > 1.05) {
+      carryX = 0.05;
+      carryStage++;
+      if (carryStage > 2) startParkOutdoor();
+    }
+  }
+
+  if (state === 'PARK_OUTDOOR') {
+    let moved = false;
+    const spd = 0.0055;
+    if (dpad.left) { player.x -= spd; player.dir = 'left'; moved = true; }
+    if (dpad.right) { player.x += spd; player.dir = 'right'; moved = true; }
+    if (dpad.up) { player.y -= spd * 1.2; moved = true; }
+    if (dpad.down) { player.y += spd * 1.2; moved = true; }
+    if (player.tx !== null) {
+      const dx = player.tx - player.x, dy = player.ty - player.y, dist = Math.hypot(dx, dy);
+      if (dist > 0.015) { player.x += (dx / dist) * spd; player.y += (dy / dist) * spd; player.dir = dx < 0 ? 'left' : 'right'; moved = true; }
+      else player.tx = null;
+    }
+    player.x = Math.max(0.08, Math.min(0.92, player.x));
+    player.y = Math.max(0.46, Math.min(0.86, player.y));
+    player.walk = moved ? player.walk + 0.25 : 0;
+
+    const hint = document.getElementById('parkHint');
+    if (outdoorStage === 0) hint.textContent = "Çimlere, Kediye veya Çeşmeye yaklaş ve ETKİLEŞİM'e bas!";
+    else if (outdoorStage === 1) hint.textContent = "Sağdaki kaleye yürü ve ETKİLEŞİM'e bas! ⚽";
+    else hint.textContent = "Dondurma arabasına yürü ve ETKİLEŞİM'e bas! 🍦";
+  }
+}
+
+// ==========================================
+// 12. CANVAS ÇİZİM MOTORU
+// ==========================================
+function drawKid(x, y, sc, mode = 'stand', dir = 'right', walk = 0) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (dir === 'left') ctx.scale(-1, 1);
+  const bob = mode === 'sit' ? Math.sin(tick * 0.25) * 3 : Math.abs(Math.sin(walk)) * -5;
+
+  // Bacaklar
+  const swing = mode === 'stand' ? Math.sin(walk) * 8 * sc : 0;
+  ctx.fillStyle = '#1e3a8a';
+  ctx.fillRect(-11 * sc + swing, 12 * sc, 9 * sc, 24 * sc);
+  ctx.fillRect(2 * sc - swing, 12 * sc, 9 * sc, 24 * sc);
+
+  // Tişört
+  ctx.fillStyle = '#10b981';
+  ctx.fillRect(-15 * sc, (-18 + bob) * sc, 30 * sc, 32 * sc);
+
+  // Kafa (Derste uyuyorsa öne eğilir)
+  ctx.save();
+  if (mode === 'desk_sleep') ctx.rotate(0.45);
+  ctx.fillStyle = '#fed7aa';
+  ctx.fillRect(-14 * sc, (-46 + bob) * sc, 28 * sc, 28 * sc);
+  ctx.fillStyle = '#451a03';
+  ctx.fillRect(-15 * sc, (-50 + bob) * sc, 30 * sc, 10 * sc);
+
+  // Kafadaki şişlik (Hoca vurduysa!)
+  if (bumpSize > 0) {
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(0, (-54 + bob) * sc, bumpSize * 0.65, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Gözler
+  ctx.fillStyle = mode === 'sit' ? '#22d3ee' : '#0f172a';
+  if (mode === 'desk_sleep') {
+    ctx.fillRect(2 * sc, (-33 + bob) * sc, 9 * sc, 3 * sc); // Kapalı göz
+  } else {
+    ctx.fillRect(4 * sc, (-36 + bob) * sc, 6 * sc, 6 * sc);
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawRoomScene(mode = 'day') {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, mode === 'night' ? '#050811' : '#1e1b4b');
+  g.addColorStop(1, '#0f172a');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // Zemin
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(0, H * 0.78, W, H * 0.22);
+
+  // Yatak (Sol tarafta)
+  ctx.fillStyle = '#7c2d12';
+  ctx.fillRect(W * 0.06, H * 0.56, W * 0.22, H * 0.22);
+  ctx.fillStyle = '#6366f1';
+  ctx.fillRect(W * 0.07, H * 0.53, W * 0.20, H * 0.12);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(W * 0.08, H * 0.50, W * 0.07, H * 0.05);
+
+  // Dev Bilgisayar Monitörü (Ortada)
+  const mw = Math.min(310, W * 0.55), mh = Math.min(195, H * 0.32);
+  const mx = W * 0.52 - mw / 2, my = H * 0.22;
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(mx - 10, my - 10, mw + 20, mh + 20);
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(mx - 10, my - 10, mw + 20, mh + 20);
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillRect(mx, my, mw, mh * 0.7);
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(mx, my + mh * 0.7, mw, mh * 0.3);
+
+  // Ekrandaki Blok veya Creeper
+  const bs = Math.min(92, mh * 0.48);
+  const bx = W * 0.52 - bs / 2, by = my + mh * 0.5 - bs / 2;
+  if (state === 'PC_GAME' && targetType === 'creeper') {
+    ctx.fillStyle = '#16a34a';
+    ctx.fillRect(bx, by, bs, bs);
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(bx + bs * 0.2, by + bs * 0.22, bs * 0.2, bs * 0.2);
+    ctx.fillRect(bx + bs * 0.6, by + bs * 0.22, bs * 0.2, bs * 0.2);
+    ctx.fillRect(bx + bs * 0.35, by + bs * 0.5, bs * 0.3, bs * 0.35);
+  } else {
+    ctx.fillStyle = (state === 'PC_GAME' && targetType === 'diamond') ? '#475569' : '#78350f';
+    ctx.fillRect(bx, by, bs, bs);
+    ctx.fillStyle = (state === 'PC_GAME' && targetType === 'diamond') ? '#22d3ee' : '#22c55e';
+    ctx.fillRect(bx, by, bs, bs * 0.26);
+  }
+
+  // Masa ve Çocuk
+  ctx.fillStyle = '#92400e';
+  ctx.fillRect(W * 0.32, my + mh + 12, W * 0.42, 18);
+  drawKid(W * 0.52, my + mh + 48, 1.05, 'sit');
+}
+
+function drawSchoolScene() {
+  // Sınıf duvarı & Kara Tahta
+  ctx.fillStyle = '#fef3c7';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#064e3b';
+  ctx.fillRect(W * 0.15, H * 0.12, W * 0.7, H * 0.32);
+  ctx.strokeStyle = '#92400e';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(W * 0.15, H * 0.12, W * 0.7, H * 0.32);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText("2x + 5 = 15  ->  DERSTE UYUMAK YASAKTIR!", W * 0.5, H * 0.28);
+
+  // Öğrenci Sırası ve Çocuk
+  const isSleeping = sleepiness > 65 || gotSlappedThisClass;
+  drawKid(W * 0.5, H * 0.62, 1.2, isSleeping ? 'desk_sleep' : 'sit');
+  ctx.fillStyle = '#b45309';
+  ctx.fillRect(W * 0.34, H * 0.64, W * 0.32, 24);
+
+  if (isSleeping && !gotSlappedThisClass) {
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '900 22px sans-serif';
+    ctx.fillText("Zzz... 💤", W * 0.56, H * 0.48 - Math.sin(tick * 0.1) * 8);
+  }
+
+  // Hoca (Uyuyakalınca yanına gelir ve elini kaldırır!)
+  const tx = gotSlappedThisClass ? W * 0.36 : W * 0.22;
+  ctx.save();
+  ctx.translate(tx, H * 0.58);
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(-18, -25, 36, 55); // Takım elbise
+  ctx.fillStyle = '#fed7aa';
+  ctx.fillRect(-15, -55, 30, 28); // Kafa
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillRect(-16, -60, 32, 10); // Saç
+  // Kızgın kaşlar
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(2, -46, 10, 4);
+  ctx.restore();
+}
+
+function drawCarrySquad(cx, cy) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  const step = Math.sin(tick * 0.25) * 6;
+  const kick = Math.sin(tick * 0.45) * 10;
+
+  // Öndeki Görevli
+  ctx.save();
+  ctx.translate(46, step * 0.4);
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(-12, 10 + step, 10, 38); ctx.fillRect(2, 10 - step, 10, 38);
+  ctx.fillStyle = '#1e293b'; ctx.fillRect(-16, -28, 32, 40);
+  ctx.fillStyle = '#fed7aa'; ctx.fillRect(-13, -56, 26, 26);
+  ctx.fillStyle = '#020617'; ctx.fillRect(2, -46, 12, 6);
+  ctx.fillStyle = '#1e293b'; ctx.fillRect(-26, -12, 24, 10);
+  ctx.restore();
+
+  // Arkadaki Görevli
+  ctx.save();
+  ctx.translate(-46, -step * 0.4);
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(-12, 10 - step, 10, 38); ctx.fillRect(2, 10 + step, 10, 38);
+  ctx.fillStyle = '#1e293b'; ctx.fillRect(-16, -28, 32, 40);
+  ctx.fillStyle = '#fed7aa'; ctx.fillRect(-13, -56, 26, 26);
+  ctx.fillStyle = '#020617'; ctx.fillRect(2, -46, 12, 6);
+  ctx.fillStyle = '#1e293b'; ctx.fillRect(6, -12, 24, 10);
+  ctx.restore();
+
+  // Ortada Kucakta Yatay Taşınan Çocuk
+  ctx.save();
+  ctx.translate(0, -14 + Math.sin(tick * 0.3) * 3);
+  ctx.fillStyle = '#10b981'; ctx.fillRect(-22, -12, 44, 24);
+  ctx.fillStyle = '#fed7aa'; ctx.fillRect(-46, -14, 24, 24);
+  ctx.fillStyle = '#451a03'; ctx.fillRect(-48, -16, 10, 26);
+  ctx.fillStyle = '#1e3a8a';
+  ctx.fillRect(22, -10 + kick * 0.5, 24, 9);
+  ctx.fillRect(22, 2 - kick * 0.5, 24, 9);
+
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.roundRect(-95, -72, 190, 30, 10); ctx.fill();
+  ctx.fillStyle = '#0f172a'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText("İNDİRİN BENİİİ! ELMAS KAZIYORDUM!", 0, -53);
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawParkScene() {
+  ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 0, W, H * 0.45);
+  ctx.fillStyle = '#fde047'; ctx.beginPath(); ctx.arc(W * 0.86, H * 0.14, 38, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#22c55e'; ctx.fillRect(0, H * 0.44, W, H * 0.56);
+  ctx.fillStyle = '#fde68a'; ctx.fillRect(0, H * 0.62, W, H * 0.11);
+
+  ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+  // Çim
+  ctx.fillStyle = parkTasks.grass ? '#15803d' : '#86efac';
+  ctx.beginPath(); ctx.ellipse(W * 0.25, H * 0.74, 52, 22, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#064e3b'; ctx.fillText("🌱 ÇİMLER", W * 0.25, H * 0.74 - 28);
+
+  // Kedi & Çeşme
+  ctx.font = '30px Arial';
+  ctx.fillText('🐈', W * 0.52, H * 0.58);
+  ctx.fillText('⛲', W * 0.78, H * 0.74);
+
+  if (outdoorStage >= 1) {
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
+    ctx.strokeRect(W * 0.84, H * 0.54, 40, 76);
+    ctx.fillText('⚽👦', W * 0.80, H * 0.62);
+  }
+  if (outdoorStage >= 2) {
+    ctx.fillText('🍦🎩', W * 0.76, H * 0.50);
+  }
+
+  drawKid(player.x * W, player.y * H, 1.0, 'stand', player.dir, player.walk);
+}
+
+function draw() {
+  ctx.save();
+  if (screenShake > 0) {
+    ctx.translate((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14);
+  }
+  ctx.clearRect(0, 0, W, H);
+
+  if (state === 'START') drawRoomScene('night');
+  else if (state === 'TRAILER') drawRoomScene(trailerScript[trailerStep]?.mode || 'day');
+  else if (state === 'ROOM_HUB' || state === 'PC_GAME' || state === 'BLANKET_VID' || state === 'DAY15_RAID') {
+    drawRoomScene(timeOfDay === 'NIGHT' ? 'night' : 'day');
+  } else if (state === 'SCHOOL') {
+    drawSchoolScene();
+  } else if (state === 'DAY15_CARRY') {
+    ctx.fillStyle = carryStage === 0 ? '#fef3c7' : (carryStage === 1 ? '#38bdf8' : '#22c55e');
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#0f172a'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
+    const labels = ["🏠 EVDEN ÇIKARILIYOR...", "🏙️ SOKAKTAN GEÇİLİYOR...", "🌳 PARKA İNİŞ YAPILIYOR!"];
+    ctx.fillText(labels[carryStage], W * 0.5, H * 0.18);
+    drawCarrySquad(W * carryX, H * 0.65);
+  } else {
+    drawParkScene();
+  }
+
+  particles.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); });
+  floatTexts.forEach(f => {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, f.life / 20);
+    ctx.font = '900 18px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#0f172a'; ctx.fillText(f.text, f.x + 2, f.y + 2);
+    ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y);
+    ctx.restore();
+  });
+  ctx.restore();
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+window.onload = function() {
+  loop();
+};
+</script>
+</body>
+</html>
